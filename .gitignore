@@ -1,0 +1,15 @@
+.env
+/fullSite
+
+# SSL certificates
+/certs/
+
+# Security scan results (SonarQube + Trivy)
+/securityScan/
+
+# Log monitor runtime data
+/tools/logs/
+
+
+# SonarQube scanner working directory
+.scannerwork/

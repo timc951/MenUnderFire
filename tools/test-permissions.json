@@ -1,0 +1,17 @@
+{
+  "email": "YOUR_EMAIL_HERE",
+  "site_admin": false,
+  "org_admin": [
+    {
+      "action": "add",
+      "org_name": "SOME_ORG_NAME"
+    }
+  ],
+  "group_memberships": [
+    {
+      "action": "set",
+      "group_name": "SOME_GROUP_NAME",
+      "role": "MEMBER"
+    }
+  ]
+}

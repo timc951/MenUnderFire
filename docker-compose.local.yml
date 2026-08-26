@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  # Combined frontend + Go backend in a single container
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: /api
+        VITE_AUTH_PUBLISHABLE_KEY: ${VITE_AUTH_PUBLISHABLE_KEY}
+        VITE_DEBUG_BUILD: ${VITE_DEBUG_BUILD:-false}
+    container_name: menunderfire-app
+    ports:
+      - "8001:8080"
+    environment:
+      # Go backend configuration
+      SERVER_PORT: 7001
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-menunderfire}
+      DB_SSL_MODE: ${DB_SSL_MODE:-disable}
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN}
+      AUTH_DOMAIN: ${AUTH_DOMAIN}
+      AUTH_AUDIENCE: ${AUTH_AUDIENCE:-none}
+      AUTH_ISSUER: ${AUTH_ISSUER}
+      AUTH_JWKS_URL: ${AUTH_JWKS_URL}
+      HIT_TOKEN: ${HIT_TOKEN}
+      AGREEMENT_HMAC_SECRET: ${AGREEMENT_HMAC_SECRET}
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      start_period: 30s
+      retries: 3

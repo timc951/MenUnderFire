@@ -1,0 +1,5 @@
+create a marketing and pricing plan for the site.  analyze the pricing options and suggest a model for how to pay for hosting the site.  do you think it is possible to run as a donation based?
+
+back to marketing and pricing.  could it be where the organizations pay, but the members are free?
+
+can you put all this marketing and pricing information into md files in a separate folder?

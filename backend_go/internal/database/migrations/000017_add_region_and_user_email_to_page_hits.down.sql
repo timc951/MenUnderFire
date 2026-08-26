@@ -1,0 +1,2 @@
+ALTER TABLE page_hits DROP COLUMN IF EXISTS region;
+ALTER TABLE page_hits DROP COLUMN IF EXISTS user_email;

@@ -1,0 +1,134 @@
+stages:
+  - version
+  - build
+
+variables:
+  FRONTEND_IMAGE: ${CI_REGISTRY_IMAGE}/frontend
+  BACKEND_IMAGE: ${CI_REGISTRY_IMAGE}/backend
+
+# ---------------------------------------------------------------------------
+# Version — read VERSION file, auto-increment patch
+# ---------------------------------------------------------------------------
+increment-version:
+  stage: version
+  tags:
+    - docker
+  image: alpine:3.23
+  before_script:
+    - apk add --no-cache git
+    - git config user.email "ci@gitlab.com"
+    - git config user.name "GitLab CI"
+  script:
+    - |
+      CURRENT=$(cat VERSION)
+      MAJOR=$(echo "$CURRENT" | cut -d. -f1)
+      MINOR=$(echo "$CURRENT" | cut -d. -f2)
+      PATCH=$(echo "$CURRENT" | cut -d. -f3)
+      NEW_PATCH=$((PATCH + 1))
+      NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
+      echo "$NEW_VERSION" > VERSION
+      echo "VERSION=${NEW_VERSION}" > version.env
+      echo "Bumped version: ${CURRENT} -> ${NEW_VERSION}"
+      git remote set-url origin "https://gitlab-ci-token:${VERSION_TOKEN}@gitlab.com/${CI_PROJECT_PATH}.git"
+      git add VERSION
+      git commit -m "ci: bump version to ${NEW_VERSION}"
+      git push origin HEAD:${CI_COMMIT_BRANCH}
+  artifacts:
+    reports:
+      dotenv: version.env
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master" && $CI_COMMIT_MESSAGE !~ /^ci:/
+
+# ---------------------------------------------------------------------------
+# Frontend — React + Vite served by Nginx
+# ---------------------------------------------------------------------------
+build-frontend:
+  stage: build
+  tags:
+    - docker
+  image:
+    name: gcr.io/kaniko-project/executor:v1.23.2-debug
+    entrypoint: [""]
+  needs:
+    - job: increment-version
+      artifacts: true
+      optional: true
+  before_script:
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"${CI_REGISTRY}\":{\"username\":\"${CI_REGISTRY_USER}\",\"password\":\"${CI_REGISTRY_PASSWORD}\"}}}" > /kaniko/.docker/config.json
+  script:
+    - |
+      /kaniko/executor \
+        --context "${CI_PROJECT_DIR}/frontend" \
+        --dockerfile "${CI_PROJECT_DIR}/frontend/Dockerfile" \
+        --build-arg "VITE_API_URL=${VITE_API_URL}" \
+        --build-arg "VITE_AUTH_PUBLISHABLE_KEY=${VITE_AUTH_PUBLISHABLE_KEY}" \
+        --build-arg "VITE_HIT_TOKEN=${VITE_HIT_TOKEN}" \
+        --destination "${FRONTEND_IMAGE}:${VERSION}" \
+        --destination "${FRONTEND_IMAGE}:latest"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master" && $CI_COMMIT_MESSAGE !~ /^ci:/
+      changes:
+        - frontend/**
+        - .gitlab-ci.yml
+
+# ---------------------------------------------------------------------------
+# Backend — Go API server
+# ---------------------------------------------------------------------------
+build-backend:
+  stage: build
+  tags:
+    - docker
+  image:
+    name: gcr.io/kaniko-project/executor:v1.23.2-debug
+    entrypoint: [""]
+  needs:
+    - job: increment-version
+      artifacts: true
+      optional: true
+  before_script:
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"${CI_REGISTRY}\":{\"username\":\"${CI_REGISTRY_USER}\",\"password\":\"${CI_REGISTRY_PASSWORD}\"}}}" > /kaniko/.docker/config.json
+  script:
+    - |
+      /kaniko/executor \
+        --context "${CI_PROJECT_DIR}/backend_go" \
+        --dockerfile "${CI_PROJECT_DIR}/backend_go/Dockerfile" \
+        --build-arg "APP_VERSION=${VERSION}" \
+        --destination "${BACKEND_IMAGE}:${VERSION}" \
+        --destination "${BACKEND_IMAGE}:latest"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master" && $CI_COMMIT_MESSAGE !~ /^ci:/
+      changes:
+        - backend_go/**
+        - .gitlab-ci.yml
+
+# ---------------------------------------------------------------------------
+# Manual — bump minor version (0.x.0) and create git tag
+# ---------------------------------------------------------------------------
+bump-minor:
+  stage: version
+  tags:
+    - docker
+  image: alpine:3.23
+  before_script:
+    - apk add --no-cache git
+    - git config user.email "ci@gitlab.com"
+    - git config user.name "GitLab CI"
+  script:
+    - |
+      CURRENT=$(cat VERSION)
+      MAJOR=$(echo "$CURRENT" | cut -d. -f1)
+      MINOR=$(echo "$CURRENT" | cut -d. -f2)
+      NEW_MINOR=$((MINOR + 1))
+      NEW_VERSION="${MAJOR}.${NEW_MINOR}.0"
+      echo "$NEW_VERSION" > VERSION
+      echo "Bumped minor version: ${CURRENT} -> ${NEW_VERSION}"
+      git remote set-url origin "https://gitlab-ci-token:${VERSION_TOKEN}@gitlab.com/${CI_PROJECT_PATH}.git"
+      git add VERSION
+      git commit -m "ci: bump minor version to ${NEW_VERSION}"
+      git tag "v${NEW_VERSION}"
+      git push origin HEAD:${CI_COMMIT_BRANCH} --tags
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master" && $CI_PIPELINE_SOURCE == "web"
+      when: manual

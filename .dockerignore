@@ -1,0 +1,47 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Dependencies (will be installed in container)
+frontend/node_modules
+backend_go/vendor
+
+# Build outputs
+frontend/dist
+backend_go/server
+
+# Logs
+*.log
+logs/
+backend_go/logs/
+
+# Environment files (use Docker env vars instead)
+.env
+.env.local
+.env.*.local
+frontend/.env
+frontend/.env.local
+backend_go/.env
+
+# Test files
+**/*.test.ts
+**/*.test.tsx
+**/*_test.go
+frontend/coverage
+
+# Documentation
+*.md
+!README.md
+
+# Kotlin backend (not used in this container)
+backend/
+
+# Misc
+.DS_Store
+Thumbs.db

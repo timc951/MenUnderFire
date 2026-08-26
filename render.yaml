@@ -1,0 +1,108 @@
+services:
+  # Backend API
+  - type: web
+    name: menunderfire-api
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    plan: starter
+    envVars:
+      - key: PORT
+        value: 7001
+      - key: DATABASE_URL
+        fromDatabase:
+          name: menunderfire-db
+          property: connectionString
+      - key: DATABASE_USER
+        fromDatabase:
+          name: menunderfire-db
+          property: user
+      - key: DATABASE_PASSWORD
+        fromDatabase:
+          name: menunderfire-db
+          property: password
+      - key: AUTH_JWKS_URL
+        sync: false
+      - key: AUTH_DOMAIN
+        sync: false
+      - key: AUTH_ISSUER
+        sync: false
+      - key: AUTH_AUDIENCE
+        sync: false
+
+  # Keycloak Identity Server
+  - type: web
+    name: menunderfire-keycloak
+    runtime: docker
+    rootDir: keycloak
+    dockerfilePath: ./Dockerfile
+    dockerCommand: start --optimized
+    healthCheckPath: /health/ready
+    plan: starter
+    envVars:
+      - key: KC_DB
+        value: postgres
+      - key: KC_DB_URL
+        fromDatabase:
+          name: keycloak-db
+          property: connectionString
+      - key: KC_DB_USERNAME
+        fromDatabase:
+          name: keycloak-db
+          property: user
+      - key: KC_DB_PASSWORD
+        fromDatabase:
+          name: keycloak-db
+          property: password
+      - key: KC_HOSTNAME
+        sync: false
+      - key: KC_PROXY
+        value: edge
+      - key: KC_HTTP_ENABLED
+        value: "true"
+      - key: KC_HOSTNAME_STRICT
+        value: "false"
+      - key: KEYCLOAK_ADMIN
+        sync: false
+      - key: KEYCLOAK_ADMIN_PASSWORD
+        generateValue: true
+
+  # Frontend (Static Site)
+  - type: web
+    name: menunderfire-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        sync: false
+      - key: VITE_KEYCLOAK_URL
+        sync: false
+      - key: VITE_KEYCLOAK_REALM
+        value: menunderfire
+      - key: VITE_KEYCLOAK_CLIENT_ID
+        value: menunderfire-frontend
+
+databases:
+  - name: menunderfire-db
+    databaseName: menunderfire
+    user: menunderfire_user
+    plan: starter
+
+  - name: keycloak-db
+    databaseName: keycloak
+    user: keycloak_user
+    plan: starter
