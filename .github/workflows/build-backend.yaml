@@ -1,14 +1,9 @@
 name: Build Backend Image
 
+# Manual only: this job targets a self-hosted ARC runner that is not
+# available outside the homelab cluster.
 on:
-  push:
-    branches: [master]
-    paths:
-      - "backend_go/**"
-  pull_request:
-    branches: [master]
-    paths:
-      - "backend_go/**"
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
