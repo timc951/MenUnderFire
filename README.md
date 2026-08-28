@@ -115,10 +115,13 @@ the generated code; a large share of the initial implementation was produced by 
 LLM working from those specs. The security hardening, the RBAC hierarchy design, the
 CI/CD setup, and the operational work are mine.
 
-I mention it because it is true and because the distinction matters when you are
-reading someone's code to judge how they think. I am happy to walk through any
-decision in here.
-
 ## Status
 
-Personal project, not accepting contributions. Published as a work sample.
+**On hold, and incomplete.** This was never released — there is no production
+deployment and it has never had real users. Development stopped mid-stream, so
+expect rough edges: coverage is concentrated in the service layer, some planned
+features were never finished, and a few decisions (the site-admin checks noted
+above) were left mid-refactor.
+
+It is published as a work sample rather than as a finished product. Not accepting
+contributions.
